@@ -9,6 +9,7 @@ from mapproxy.cache.file import FileCache
 
 import boto
 import StringIO
+from mapproxy.util import async
 
 import logging
 log = logging.getLogger('mapproxy.cache.s3')
@@ -25,7 +26,10 @@ class S3Cache(FileCache):
             each tile (e.g. 'png')
         """
         super(S3Cache, self).__init__(cache_dir, file_ext=file_ext, directory_layout=directory_layout, lock_timeout=lock_timeout, link_single_color_images=False)
-        self.bucket = bucket
+        self.bucket_id = bucket
+        self.s3_conn = boto.connect_s3()
+        # b = self.s3_conn.create_bucket(self.bucket)
+        self.bucket = self.s3_conn.create_bucket(self.bucket_id)
 
         log.info('bucket: %s' % self.bucket)
 
@@ -44,10 +48,17 @@ class S3Cache(FileCache):
         """
         Returns ``True`` if the tile data is present.
         """
-        return False
+        # return False
+        log.info('missing: %s' % tile.is_missing())
         if tile.is_missing():
             location = self.tile_location(tile)
-            if os.path.exists(location):
+            # conn = boto.connect_s3()
+            # b = self.s3_conn.get_bucket(self.bucket)
+            k = boto.s3.key.Key(self.bucket)
+            log.info('is_cached, location: %s' % location)
+            k.key = location
+            log.info('exists: %s' % k.exists())
+            if k.exists():
                 return True
             else:
                 return False
@@ -64,15 +75,18 @@ class S3Cache(FileCache):
 
         location = self.tile_location(tile)
 
-        conn = boto.connect_s3()
+        # conn = boto.connect_s3()
         tile_data = StringIO.StringIO()
-        b = conn.create_bucket(self.bucket)
-        k = boto.s3.key.Key(b)
-        log.info(location)
+        # b = self.s3_conn.get_bucket(self.bucket)
+        k = boto.s3.key.Key(self.bucket)
+        log.info('load_tile, location: %s' % location)
         k.key = location
-        k.set_contents_from_file(tile_data)
-        tile.source = ImageSource(tile_data)
-        return True
+        if k.exists():
+            k.get_contents_to_file(tile_data)
+            # k.get_contents_to_filename('/home/matt/Projects/MapProxy/tile.png')
+            tile.source = ImageSource(tile_data)
+            return True
+        return False
 
         # if os.path.exists(location):
         #     if with_metadata:
@@ -83,10 +97,15 @@ class S3Cache(FileCache):
 
     def remove_tile(self, tile):
         location = self.tile_location(tile)
-        try:
-            os.remove(location)
-        except OSError, ex:
-            if ex.errno != errno.ENOENT: raise
+        log.info('remove_tile, location: %s' % location)
+        # try:
+        #     os.remove(location)
+        # except OSError, ex:
+        #     if ex.errno != errno.ENOENT: raise
+        k = boto.s3.key.Key(self.bucket)
+        k.key = location
+        if k.exists():
+            k.delete()
 
     def store_tile(self, tile):
         """
@@ -95,14 +114,22 @@ class S3Cache(FileCache):
         """
         if tile.stored:
             return
-        
-        tile_loc = self.tile_location(tile)
-        
-        log.info('tile_loc %s' % tile_loc)
-        conn = boto.connect_s3()
-        b = conn.create_bucket(self.bucket)
-        k = boto.s3.key.Key(b)
-        k.key = tile_loc
+
+        location = self.tile_location(tile)
+
+        log.info('store_tile, location: %s' % location)
+        # conn = boto.connect_s3()
+        # b = self.s3_conn.get_bucket(self.bucket)
+        k = boto.s3.key.Key(self.bucket)
+        k.key = location
         with tile_buffer(tile) as buf:
-            tile_data = buf.getvalue()
             k.set_contents_from_file(buf)
+
+        # This is still blocking when I thought that it would not
+        # return async.run_non_blocking(_store, (k, tile))
+
+def _store(key, tile):
+    print 'Storing %s, %s' % (key, tile)
+    with tile_buffer(tile) as buf:
+        key.set_contents_from_file(buf)
+

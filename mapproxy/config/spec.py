@@ -86,6 +86,11 @@ cache_types = {
         'directory_layout': str(),
         'use_grid_names': bool(),
     },
+    's3': {
+        'bucket': str(),
+        'directory_layout': str(),
+        'use_grid_names': bool(),
+    },
     'mbtiles': {
         'filename': str()
     },
