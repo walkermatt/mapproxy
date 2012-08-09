@@ -87,11 +87,16 @@ class S3Cache(FileCache):
         k = boto.s3.key.Key(self.bucket)
         log.info('load_tile, location: %s' % location)
         k.key = location
-        if k.exists():
+        # if k.exists():
+        try:
             k.get_contents_to_file(tile_data)
             # k.get_contents_to_filename('/home/matt/Projects/MapProxy/tile.png')
             tile.source = ImageSource(tile_data)
+            k.close()
             return True
+        except boto.exception.S3ResponseError, e:
+            print e.error_code
+        k.close()
         return False
 
         # if os.path.exists(location):
@@ -112,6 +117,7 @@ class S3Cache(FileCache):
         k.key = location
         if k.exists():
             k.delete()
+        k.close()
 
     def store_tile(self, tile):
         """
@@ -130,6 +136,7 @@ class S3Cache(FileCache):
         k.key = location
         with tile_buffer(tile) as buf:
             k.set_contents_from_file(buf)
+        k.close()
 
         # This is still blocking when I thought that it would not
         # async.run_non_blocking(self.async_store, (k, tile))
