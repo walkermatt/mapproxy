@@ -10,6 +10,7 @@ from mapproxy.cache.file import FileCache
 import boto
 import StringIO
 from mapproxy.util import async
+from threading import Timer
 
 import logging
 log = logging.getLogger('mapproxy.cache.s3')
@@ -29,7 +30,12 @@ class S3Cache(FileCache):
         self.bucket_id = bucket
         self.s3_conn = boto.connect_s3()
         # b = self.s3_conn.create_bucket(self.bucket)
-        self.bucket = self.s3_conn.create_bucket(self.bucket_id)
+
+        try:
+            self.bucket = self.s3_conn.get_bucket(self.bucket_id)
+        except boto.exception.S3ResponseError, e:
+            if e.error_code == 'NoSuchBucket':
+                self.bucket = self.s3_conn.create_bucket(self.bucket_id, location=boto.s3.connection.Location.EU)
 
         log.info('bucket: %s' % self.bucket)
 
@@ -126,10 +132,25 @@ class S3Cache(FileCache):
             k.set_contents_from_file(buf)
 
         # This is still blocking when I thought that it would not
-        # return async.run_non_blocking(_store, (k, tile))
+        # async.run_non_blocking(self.async_store, (k, tile))
 
-def _store(key, tile):
-    print 'Storing %s, %s' % (key, tile)
-    with tile_buffer(tile) as buf:
-        key.set_contents_from_file(buf)
+        # async_pool = async.Pool(4)
+        # for store in async_pool.map(self.async_store_, [(k, tile)]):
+        #     log.info('stored...')
+
+        # async.starmap(self.async_store, (k, tile))
+
+        # This sometimes suffers from "ValueError: I/O operation on closed file"
+        # Timer(0.25, self.async_store, args=[k, tile]).start()
+
+    def async_store_(self, foo):
+        key, tile = foo
+        print 'Storing %s, %s' % (key, tile)
+        with tile_buffer(tile) as buf:
+            key.set_contents_from_file(buf)
+
+    def async_store(self, key, tile):
+        print 'Storing %s, %s' % (key, tile)
+        with tile_buffer(tile) as buf:
+            key.set_contents_from_file(buf)
 
