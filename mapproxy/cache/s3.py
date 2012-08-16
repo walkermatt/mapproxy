@@ -78,7 +78,8 @@ class S3Cache(FileCache):
             k.close()
             return True
         except boto.exception.S3ResponseError, e:
-            print e.error_code
+            # NoSuchKey
+            pass
         k.close()
         return False
 
