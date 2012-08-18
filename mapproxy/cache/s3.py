@@ -6,7 +6,11 @@ from mapproxy.image import ImageSource
 from mapproxy.cache.base import tile_buffer
 from mapproxy.cache.file import FileCache
 
-import boto
+try:
+    import boto
+except ImportError:
+    boto = None
+
 import StringIO
 from mapproxy.util import async
 from threading import Timer
@@ -25,6 +29,9 @@ class S3Cache(FileCache):
         :param file_ext: the file extension that will be appended to
             each tile (e.g. 'png')
         """
+        if boto is None:
+            raise ImportError("S3 Cache requires 'boto' package.")
+
         super(S3Cache, self).__init__(cache_dir, file_ext=file_ext, directory_layout=directory_layout, lock_timeout=lock_timeout, link_single_color_images=False)
 
         self.s3_conn = boto.connect_s3()
