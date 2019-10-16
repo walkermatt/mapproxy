@@ -82,7 +82,9 @@ class WMTSServer(Server):
 
 
         result = self.capabilities_class(service, layers, self.matrix_sets, info_formats=self.info_formats).render(request)
-        return Response(result, mimetype='application/xml')
+        resp = Response(result, mimetype='application/xml')
+        resp.cache_headers(no_cache=True)
+        return resp
 
     def tile(self, request):
         self.check_request(request)

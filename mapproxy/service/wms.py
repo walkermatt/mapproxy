@@ -197,7 +197,9 @@ class WMSServer(Server):
             self.image_formats, info_formats, srs=self.srs, srs_extents=self.srs_extents,
             inspire_md=self.inspire_md, max_output_pixels=self.max_output_pixels
             ).render(map_request)
-        return Response(result, mimetype=map_request.mime_type)
+        resp = Response(result, mimetype=map_request.mime_type)
+        resp.cache_headers(no_cache=True)
+        return resp
 
     def featureinfo(self, request):
         infos = []

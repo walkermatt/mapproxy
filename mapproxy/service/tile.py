@@ -174,7 +174,10 @@ class TileServer(Server):
             layers = self.authorized_tile_layers(tms_request.http.environ)
             result = self._render_template(layers, service)
 
-        return Response(result, mimetype='text/xml')
+        resp = Response(result, mimetype='text/xml')
+        resp.cache_headers(no_cache=True)
+        return resp
+
 
     def tms_root_resource(self, tms_request):
         """
@@ -183,7 +186,9 @@ class TileServer(Server):
         """
         service = self._service_md(tms_request)
         result = self._render_root_resource_template(service)
-        return Response(result, mimetype='text/xml')
+        resp = Response(result, mimetype='text/xml')
+        resp.cache_headers(no_cache=True)
+        return resp
 
     def _service_md(self, map_request):
         md = dict(self.md)
