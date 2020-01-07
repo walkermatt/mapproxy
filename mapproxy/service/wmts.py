@@ -72,8 +72,12 @@ class WMTSServer(Server):
     def capabilities(self, request):
         service = self._service_md(request)
         layers = self.authorized_tile_layers(request.http.environ)
+
+
         result = self.capabilities_class(service, layers, self.matrix_sets).render(request)
-        return Response(result, mimetype='application/xml')
+        resp = Response(result, mimetype='application/xml')
+        resp.cache_headers(no_cache=True)
+        return resp
 
     def tile(self, request):
         self.check_request(request)
