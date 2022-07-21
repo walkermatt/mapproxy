@@ -97,7 +97,7 @@ class WMSSource(MapLayer):
                 resp = self.error_handler.handle(e.response_code, query)
                 if resp:
                     return resp
-            log.warn('could not retrieve WMS map: %s', e)
+            log.warning('could not retrieve WMS map: %s', e.full_msg or e)
             reraise_exception(SourceError(e.args[0]), sys.exc_info())
 
     def _get_map(self, query):
@@ -107,8 +107,16 @@ class WMSSource(MapLayer):
         if self.supported_formats and format not in self.supported_formats:
             format = self.supported_formats[0]
         if self.supported_srs:
-            if query.srs not in self.supported_srs:
+            # srs can be equal while still having a different srs_code (EPSG:3857/900913), make sure to use a supported srs_code
+            request_srs = None
+            for srs in self.supported_srs:
+                if query.srs == srs:
+                    request_srs = srs
+                    break
+            if request_srs is None:
                 return self._get_transformed(query, format)
+            if query.srs.srs_code != request_srs.srs_code:
+                query.srs = request_srs
         if self.extent and not self.extent.contains(MapExtent(query.bbox, query.srs)):
             return self._get_sub_query(query, format)
         resp = self.client.retrieve(query, format)
