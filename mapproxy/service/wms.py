@@ -83,7 +83,7 @@ class WMSServer(Server):
         self.check_map_request(map_request)
 
         params = map_request.params
-        query = MapQuery(params.bbox, params.size, SRS(params.srs), params.format)
+        query = MapQuery(params.bbox, params.size, SRS(params.srs), params.format, dimensions=map_request.dimensions)
 
         if map_request.params.get('tiled', 'false').lower() == 'true':
             query.tiled_only = True
@@ -513,8 +513,10 @@ class Capabilities(object):
 
     def layer_llbbox(self, layer):
         if 'EPSG:4326' in self.srs_extents:
-            llbbox = self.srs_extents['EPSG:4326'].intersection(layer.extent).llbbox
-            return limit_llbbox(llbbox)
+            intersection = self.srs_extents['EPSG:4326'].intersection(layer.extent)
+            if intersection is not None:
+                llbbox = intersection.llbbox
+                return limit_llbbox(llbbox)
         return limit_llbbox(layer.extent.llbbox)
 
     def render(self, _map_request):
@@ -642,8 +644,8 @@ class LayerRenderer(object):
             return layer, layer_img
         except SourceError:
             raise
-        except MapBBOXError:
-            raise RequestError('Request too large or invalid BBOX.', request=self.request)
+        except MapBBOXError as e:
+            raise RequestError('Request too large or invalid BBOX. (%s)' % e, request=self.request)
         except MapError as e:
             raise RequestError('Invalid request: %s' % e.args[0], request=self.request)
         except TransformationError:
@@ -697,7 +699,7 @@ class WMSLayer(WMSLayerBase):
     is_active = True
     layers = []
     def __init__(self, name, title, map_layers, info_layers=[], legend_layers=[],
-                 res_range=None, md=None):
+                 res_range=None, md=None,dimensions=None):
         self.name = name
         self.title = title
         self.md = md or {}
@@ -705,11 +707,14 @@ class WMSLayer(WMSLayerBase):
         self.info_layers = info_layers
         self.legend_layers = legend_layers
         self.extent = merge_layer_extents(map_layers)
+        self.dimensions = dimensions
+
         if res_range is None:
             res_range = merge_layer_res_ranges(map_layers)
         self.res_range = res_range
         self.queryable = True if info_layers else False
         self.has_legend = True if legend_layers else False
+        self.dimensions = dimensions
 
     def is_opaque(self, query):
         return any(l.is_opaque(query) for l in self.map_layers)
