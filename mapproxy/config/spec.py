@@ -308,6 +308,7 @@ grid_opts = {
     'origin': str(),
     'tile_size': [int()],
     'threshold_res': [number()],
+    'tile_matrix': [str()]
 }
 
 ogc_service_md = {
