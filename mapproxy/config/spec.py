@@ -36,6 +36,16 @@ def validate_options(conf_dict):
     else:
         return [], True
 
+time_spec = {
+    'seconds': number(),
+    'minutes': number(),
+    'hours': number(),
+    'days': number(),
+    'weeks': number(),
+    'time': anything(),
+    'mtime': str(),
+}
+
 coverage = recursive({
     'polygons': str(),
     'polygons_srs': str(),
@@ -173,12 +183,20 @@ cache_types = {
         required('version'): number(),
         'tile_lock_dir': str(),
     },
+    'azureblob': {
+        'connection_string': str(),
+        'container_name': str(),
+        'directory_layout': str(),
+        'directory': str(),
+        'tile_lock_dir': str(),
+    },
 }
 
 on_error = {
     anything(): {
         required('response'): one_of([int], str),
         'cache': bool,
+        'authorize_stale': bool
     }
 }
 
@@ -378,6 +396,10 @@ mapproxy_yaml_spec = {
                 'region_name': str(),
                 'endpoint_url': str(),
             },
+            'azureblob': {
+                'connection_string': str(),
+                'container_name': str(),
+            },
         },
         'grid': {
             'tile_size': [int()],
@@ -420,6 +442,7 @@ mapproxy_yaml_spec = {
             'cache_rescaled_tiles': bool(),
             'upscale_tiles': int(),
             'downscale_tiles': int(),
+            'refresh_before': time_spec,
             'watermark': {
                 'text': string_type,
                 'font_size': number(),
@@ -589,8 +612,33 @@ mapproxy_yaml_spec = {
             }
         })])
     ),
-     # `parts` can be used for partial configurations that are referenced
-     # from other sections (e.g. coverages, dimensions, etc.)
+    # `parts` can be used for partial configurations that are referenced
+    # from other sections (e.g. coverages, dimensions, etc.)
     'parts': anything(),
 }
 
+
+def add_source_to_mapproxy_yaml_spec(source_name, source_spec):
+    """ Add a new source type to mapproxy_yaml_spec.
+        Used by plugins.
+    """
+
+    # sources has a single anything() : {} member
+    values = list(mapproxy_yaml_spec['sources'].values())
+    assert len(values) == 1
+    values[0].add_subspec(source_name, source_spec)
+
+
+def add_service_to_mapproxy_yaml_spec(service_name, service_spec):
+    """ Add a new service type to mapproxy_yaml_spec.
+        Used by plugins.
+    """
+
+    mapproxy_yaml_spec['services'][service_name] = service_spec
+
+
+def add_subcategory_to_layer_md(category_name, category_def):
+    """ Add a new category to wms_130_layer_md.
+        Used by plugins
+    """
+    wms_130_layer_md[category_name] = category_def
