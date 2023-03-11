@@ -93,7 +93,7 @@ def tile_grid(srs=None, bbox=None, bbox_srs=None, tile_size=(256, 256),
               num_levels=None, min_res=None, max_res=None,
               stretch_factor=1.15, max_shrink_factor=4.0,
               align_with=None, origin='ll', name=None,
-              tile_matrix=None
+              tile_matrix_ids=None
               ):
     """
     This function creates a new TileGrid.
@@ -132,7 +132,7 @@ def tile_grid(srs=None, bbox=None, bbox_srs=None, tile_size=(256, 256),
 
     return TileGrid(srs, bbox=bbox, tile_size=tile_size, res=res, threshold_res=threshold_res,
                     stretch_factor=stretch_factor, max_shrink_factor=max_shrink_factor,
-                    origin=origin, name=name, tile_matrix=tile_matrix)
+                    origin=origin, name=name, tile_matrix_ids=tile_matrix_ids)
 
 ORIGIN_UL = 'ul'
 ORIGIN_LL = 'll'
@@ -274,7 +274,7 @@ class TileGrid(object):
     def __init__(self, srs=900913, bbox=None, tile_size=(256, 256), res=None,
                  threshold_res=None, is_geodetic=False, levels=None,
                  stretch_factor=1.15, max_shrink_factor=4.0, origin='ll',
-                 name=None, tile_matrix=None):
+                 name=None, tile_matrix_ids=None):
         """
         :param stretch_factor: allow images to be scaled up by this factor
             before the next level will be selected
@@ -332,7 +332,7 @@ class TileGrid(object):
 
         self.grid_sizes = self._calc_grids()
 
-        self.tile_matrix = tile_matrix
+        self.tile_matrix_ids = tile_matrix_ids
 
     def _calc_grids(self):
         width = self.bbox[2] - self.bbox[0]

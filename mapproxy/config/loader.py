@@ -314,7 +314,7 @@ class GridConfiguration(ConfigurationBase):
             max_shrink_factor=max_shrink_factor,
             align_with=align_with,
             origin=conf.get('origin'),
-            tile_matrix=conf.get('tile_matrix')
+            tile_matrix_ids=conf.get('tile_matrix_ids')
         )
 
         return grid

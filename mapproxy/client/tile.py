@@ -62,7 +62,7 @@ class TileURLTemplate(object):
         self.with_tms_path = True if '%(tms_path)' in template else False
         self.with_arcgiscache_path = True if '%(arcgiscache_path)' in template else False
         self.with_bbox = True if '%(bbox)' in template else False
-        self.with_tile_matrix = True if '%(tile_matrix)' in template else False
+        self.with_tile_matrix_id = True if '%(tile_matrix_id)' in template else False
 
     def substitute(self, tile_coord, format=None, grid=None):
         x, y, z = tile_coord
@@ -78,8 +78,8 @@ class TileURLTemplate(object):
             data['arcgiscache_path'] = arcgiscache_path(tile_coord)
         if self.with_bbox:
             data['bbox'] = bbox(tile_coord, grid)
-        if self.with_tile_matrix:
-            data['tile_matrix'] = tile_matrix(tile_coord, grid)
+        if self.with_tile_matrix_id:
+            data['tile_matrix_id'] = tile_matrix_id(tile_coord, grid)
 
         return self.template % data
 
@@ -152,6 +152,6 @@ def bbox(tile_coord, grid):
     """
     return '%.8f,%.8f,%.8f,%.8f' % grid.tile_bbox(tile_coord)
 
-def tile_matrix(tile_coord, grid):
+def tile_matrix_id(tile_coord, grid):
     z = tile_coord[2]
-    return grid.tile_matrix[z]
+    return grid.tile_matrix_ids[z]
