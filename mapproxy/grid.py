@@ -19,6 +19,9 @@
 from __future__ import division
 import math
 
+import logging
+log = logging.getLogger('mapproxy.grid')
+
 from mapproxy.srs import SRS, get_epsg_num, merge_bbox, bbox_equals
 from mapproxy.util.collections import ImmutableDictList
 from mapproxy.compat import string_type, iteritems
@@ -331,6 +334,17 @@ class TileGrid(object):
             self.threshold_res = sorted(threshold_res)
 
         self.grid_sizes = self._calc_grids()
+
+        if tile_matrix_ids is not None and len(
+                tile_matrix_ids) != len(self.resolutions):
+            log.error(
+                'grid %s: '
+                'tile_matrix_ids lists should be the same length as resolutions.\n'
+                'tile_matrix_ids (%s): %s\nresolutions     (%s): %s', self.name,
+                len(tile_matrix_ids),
+                tile_matrix_ids,
+                len(self.resolutions),
+                self.resolutions)
 
         self.tile_matrix_ids = tile_matrix_ids
 
